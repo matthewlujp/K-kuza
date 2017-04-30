@@ -27,6 +27,8 @@ import datetime
 
 app = Flask(__name__)
 PORT = 5000
+PORT_FOR_PHOTO_SERVER = 80
+PHOTO_SERVER_ROOT = '/Applications/XAMPP/htdocs'
 
 
 @app.route('/')
@@ -43,27 +45,33 @@ def get_crop_check_mature(crop_id):
 @app.route('/crops/', methods=['POST'])
 def create_crop():
     data = request.json
-    sup = User.get(User.userId == data['supplier'])
-    crop = Crop.create(name=data['name'], latitude=float(data['latitude']),
-                       longitude=float(data['longitude']), supplier=sup)
+    sup = User.get(User.userId == 1)
+    # sup = User.get(User.userId == data['supplier'])
+    # crop = Crop.create(name=data['name'], latitude=float(data['latitude']),
+    #                    longitude=float(data['longitude']), supplier=sup)
+    item_id = data['itemId']
+    crop = Crop.create(name=data['crop'], supplier=sup)
     if 'image' in data.keys() and data['image'] is not None:
         # print(data['image'], file=sys.stderr)
-        saved_file_name = save_base64_img(crop.cropId, data['image'])
+        saved_file_name = save_base64_img(data['crop'], data['itemId'], data['image'])
         server_url = request.url.split(':' + str(PORT))[0]
-        img_url = "%s:%s/" % (server_url, PORT) + saved_file_name
+        img_url = "%s:%s/" % (server_url, PORT_FOR_PHOTO_SERVER) + saved_file_name
 
         # Judge maturity
         is_matured = judge_maturity(saved_file_name)
 
         crop.img_url = img_url
-        if judge_maturity(saved_file_name):
-            crop.expected_day = datetime.date.today()
-        else:
-            crop.expected_day = datetime.date.today() + datetime.timedelta(days=2)
+        # if judge_maturity(saved_file_name):
+        #     crop.expected_day = datetime.date.today()
+        # else:
+        #     crop.expected_day = datetime.date.today() + datetime.timedelta(days=2)
+        is_matured = judge_maturity(saved_file_name)
+        is_matured = False if is_matured is None else is_matured
         crop.save()
 
-    return jsonify({"Name": crop.name, "ImgUrl": crop.img_url,
-                    "ExpectedMatureDate": crop.expected_day})
+    return jsonify({"itemId": item_id, "crop": crop.name, "image": crop.img_url,
+                    # "ExpectedMatureDate": crop.expected_day,
+                    "mature": is_matured, "supplier": data['supplier']})
 
 
 @app.route('/test/', methods=['POST'])
@@ -98,16 +106,15 @@ def crops_list():
     return jsonify({"NearCrops": crops_list})
 
 
-def save_base64_img(id, base64_img):
-    FILE_DIR = 'uploaded/images'
-    if not os.path.exists(FILE_DIR):
-        os.mkdir(FILE_DIR)
-    # with open('tmp/corp.png', 'wb') as f:
-    #     f.write(base64.b64decode(base64_img))
-    saved_file_name = "%s/%d.png" % (FILE_DIR, id)
-    # im = Image.open('tmp/corp.png')
-    # im.save(saved_file_name, "PNG")
-    with open(saved_file_name, 'wb') as f:
+def save_base64_img(crop_name, item_id, base64_img):
+    FILE_DIR = 'images'
+    dir_name = "%s/%s/%s" % (FILE_DIR, crop_name, item_id)
+    actual_dir_name = "%s/%s" % (PHOTO_SERVER_ROOT, dir_name)
+    if not os.path.exists(actual_dir_name):
+        os.makedirs(actual_dir_name)
+    actual_saved_file_name = "%s/crop.png" % (actual_dir_name)
+    saved_file_name = "%s/crop.png" % (dir_name)
+    with open(actual_saved_file_name, 'wb') as f:
         f.write(base64.b64decode(base64_img))
     return saved_file_name
 
