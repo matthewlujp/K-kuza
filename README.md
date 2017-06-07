@@ -1,6 +1,5 @@
-# Python Flask Hello World Sample
-
-This application demonstrates a simple, reusable Python web application based on the [Flask microframework](http://flask.pocoo.org/).
+# K-kuza
+Web app to reduce crop wastes.
 
 ## Run the app locally
 
@@ -9,5 +8,3 @@ This application demonstrates a simple, reusable Python web application based on
 + Run `pip install -r requirements.txt` to install the app's dependencies
 + Run `python welcome.py`
 + Access the running app in a browser at <http://localhost:5000>
-
-[Install Python]: https://www.python.org/downloads/
